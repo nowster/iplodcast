@@ -1,0 +1,16 @@
+output_dir: /home/pm/podcasts
+url_base: http://192.168.11.254/podcasts
+programmes:
+  - name: In the Chair
+    maxage: 90
+  - match: "Elvenquest: Series \\d"
+    name: Elvenquest
+    maxage: 90
+  - match: "The Museum of Curiosity: Series \\d+"
+    name: "The Museum of Curiosity"
+    maxage: 90
+  - name: "Doctor Who: The War Doctor"
+    maxage: 180
+  - match: "The News Quiz: Series \\d+"
+    name: "The News Quiz"
+    maxage: 90
