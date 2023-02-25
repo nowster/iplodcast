@@ -1,2 +1,2 @@
 # iplodcast
-Trawls through your get-iplayer history and generates a podcast
+Trawls through your get-iplayer history and generates podcast feeds.
