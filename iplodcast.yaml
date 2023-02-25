@@ -14,3 +14,6 @@ programmes:
   - match: "The News Quiz: Series \\d+"
     name: "The News Quiz"
     maxage: 90
+  - match: "Just a Minute: Series \\d+"
+    name: "Just a Minute"
+    maxage: 90

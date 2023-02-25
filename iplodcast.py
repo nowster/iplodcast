@@ -2,6 +2,10 @@
 
 # You will need to install the following modules: rfeed, pytz, pyaml, mutagen
 
+# Note do not use the version of rfeed in pypi. It's old. Instead:
+# env/bin/pip install \
+#   https://github.com/svpino/rfeed/archive/refs/heads/master.zip
+
 import argparse
 import csv
 import datetime
@@ -114,8 +118,9 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
         image = ep.get("thumbnail")
         duration = ep.get("duration")
         guid = ep.get("web")
-        episode = padnum(ep.get("episodenum"))
-        season = padnum(ep.get("seriesnum"))
+        episode = ep.get("episodenum")
+        season = ep.get("seriesnum")
+        sequence = f"{padnum(season)}:{padnum(episode)}"
 
         suffix = filename.suffix
         mimetype = None
@@ -143,9 +148,9 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
             image=image,
             subtitle=subtitle,
             summary=summary,
-            # title=title,
-            # episode=episode,
-            # season=season,
+            title=title,
+            episode=episode,
+            season=season,
             author=author,
             order=f"{season}:{episode}",
         )
