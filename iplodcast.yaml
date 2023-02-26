@@ -1,5 +1,14 @@
+# Output Directory. RSS files will be written here and audio files will be
+# hard linked into subdirectories here.
 output_dir: /home/pm/podcasts
-url_base: http://192.168.11.254/podcasts
+
+# The base URL of where the podcasts will be found by your podcast app
+url_base: http://thinkpad.local/podcasts
+
+# Where to find the get_iplayer history file.
+# If unset the default of $(HOME)/.get_iplayer/download_history will be used.
+# history_file: /home/user/iplayer/download_history
+
 programmes:
   - name: In the Chair
     maxage: 90
