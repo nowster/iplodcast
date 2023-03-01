@@ -12,7 +12,7 @@ This requires the following modules:
 * pyaml
 * rfeed
 
-All but rfeed can be installed from PyPy. The copy there is out of date but has a higher version number. Install the correct version using:
+All but rfeed can be installed from PyPi. The copy there is out of date but has a higher version number. Install the correct version using:
 
 ```
 env/bin/pip install https://github.com/svpino/rfeed/archive/refs/heads/master.zip
