@@ -9,10 +9,11 @@
 import argparse
 import csv
 import datetime
-import mutagen
 import os
 import pathlib
 import re
+
+import mutagen
 import rfeed
 import yaml
 from pytz import timezone, utc
@@ -31,7 +32,6 @@ def padnum(str):
 
 
 def get_episodes(programmes, history_file):
-
     searches = []
     episodes = {}
     for p in programmes:
@@ -44,7 +44,7 @@ def get_episodes(programmes, history_file):
         else:
             searches.append((name, name, max_age))
 
-    with open(history_file, newline="") as f:
+    with open(history_file, "rt", newline="") as f:
         history = csv.DictReader(
             f,
             fieldnames=(
@@ -109,10 +109,16 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
         filename = pathlib.Path(ep.get("filename"))
         if not filename.is_file():
             continue
-        info = mutagen.File(filename)
 
-        summary = "".join(info.get("\xa9lyr"))
+        summary = ""
+        if filename.suffix == ".m4a":
+            info = mutagen.File(filename)
+            if info is not None:
+                summary = "".join(info.get("\xa9lyr"))
+
         title = ep.get("episode")
+        if title == "-":
+            title = ep.get("name")
         subtitle = ep.get("desc")
         author = ep.get("channel")
         image = ep.get("thumbnail")
@@ -120,7 +126,7 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
         guid = ep.get("web")
         episode = ep.get("episodenum")
         season = ep.get("seriesnum")
-        sequence = f"{padnum(season)}:{padnum(episode)}"
+        order = f"{padnum(season)}:{padnum(episode)}"
 
         suffix = filename.suffix
         mimetype = None
@@ -152,7 +158,7 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
             episode=episode,
             season=season,
             author=author,
-            order=f"{season}:{episode}",
+            order=order,
         )
 
         item = rfeed.Item(
@@ -203,8 +209,7 @@ def main():
     url_base = config["url_base"]
     programmes = config["programmes"]
     history_file = config.get(
-        "history_file",
-        f"{os.environ['HOME']}/.get_iplayer/download_history"
+        "history_file", f"{os.environ['HOME']}/.get_iplayer/download_history"
     )
 
     all_episodes = get_episodes(programmes, history_file)

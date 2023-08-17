@@ -1,0 +1,20 @@
+[tool.pyright]
+# mutagen doesn't export mutagen.File in a way that satisfies the validator
+reportPrivateImportUsage = "none"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "iplodcast"
+version = "0.0.2"
+dependencies = [
+    "mutagen",
+    "pytz",
+    "pyaml",
+    "rfeed @ git+https://github.com/svpino/rfeed.git",
+]
+
+[project.scripts]
+iplodcast = "iplodcast.main:main"
