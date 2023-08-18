@@ -136,7 +136,7 @@ def make_programme_feed(
                 summary = "".join(info.get("\xa9lyr"))
 
         title = ep.get("episode")
-        if title == "-":
+        if title is None or title == "-":
             title = ep.get("name")
         subtitle = ep.get("desc")
         author = ep.get("channel")
