@@ -12,6 +12,7 @@ import datetime
 import os
 import pathlib
 import re
+from typing import Any, Dict, List, Tuple, Union
 
 import mutagen
 import rfeed
@@ -23,20 +24,24 @@ london = timezone("Europe/London")
 RE_CLEANUP = re.compile(r"[ :/]+")
 
 
-def clean_name(str):
-    return RE_CLEANUP.sub("_", str)
+def clean_name(name: str) -> str:
+    return RE_CLEANUP.sub("_", name)
 
 
-def padnum(str):
-    return f"00000000{str or ''}"[-8:]
+def padnum(num: str) -> str:
+    return f"00000000{num or ''}"[-8:]
 
 
-def get_episodes(programmes, history_file):
-    searches = []
-    episodes = {}
+def get_episodes(
+    programmes: List[Dict[str, Any]], history_file: str
+) -> Dict[str, List[Dict[Any, str]]]:
+    searches: List[Tuple[str, Union[str, re.Pattern], datetime.timedelta]] = []
+    episodes: Dict[str, List[Dict[Any, str]]] = {}
     for p in programmes:
         name = p.get("name")
         match = p.get("match")
+        if name is None:
+            continue
         episodes[name] = []
         max_age = datetime.timedelta(days=int(p.get("maxage", "365")))
         if match:
@@ -75,18 +80,25 @@ def get_episodes(programmes, history_file):
             )
             for name, search, max_age in searches:
                 if datetime.datetime.now() - date < max_age:
-                    if type(search) == str:
-                        if ep.get("name") == name:
+                    epname = ep.get("name")
+                    if type(search) is str:
+                        if epname == name:
                             episodes[name].append(ep)
-                    elif search.match(ep.get("name")):
-                        episodes[name].append(ep)
+                    elif type(search) is re.Pattern:
+                        if search.match(epname):
+                            episodes[name].append(ep)
 
     return episodes
 
 
-def make_programme_feed(prog, all_episodes, output_dir, url_base):
-    podcast_name = prog.get("name")
-    podcast_description = prog.get("description", "")
+def make_programme_feed(
+    prog: Dict[str, Any],
+    all_episodes: Dict[str, List[Dict[str, str]]],
+    output_dir: str,
+    url_base: str,
+) -> None:
+    podcast_name: str = prog.get("name", "")
+    podcast_description: str = prog.get("description", "")
 
     author = "BBC"
     image = None
@@ -104,9 +116,12 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
 
     copy_path.mkdir(exist_ok=True)
 
-    items = []
+    items: List[rfeed.Item] = []
     for ep in episodes:
-        filename = pathlib.Path(ep.get("filename"))
+        filestr = ep.get("filename")
+        if filestr is None:
+            continue
+        filename = pathlib.Path(filestr)
         if not filename.is_file():
             continue
 
@@ -124,8 +139,8 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
         image = ep.get("thumbnail")
         duration = ep.get("duration")
         guid = ep.get("web")
-        episode = ep.get("episodenum")
-        season = ep.get("seriesnum")
+        episode = ep.get("episodenum", "")
+        season = ep.get("seriesnum", "")
         order = f"{padnum(season)}:{padnum(episode)}"
 
         suffix = filename.suffix
@@ -166,7 +181,7 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
             description=summary,
             guid=rfeed.Guid(guid, isPermaLink=False),
             pubDate=datetime.datetime.utcfromtimestamp(
-                int(ep.get("timeadded"))
+                int(ep.get("timeadded", "0"))
             ),
             enclosure=rfeed.Enclosure(
                 url=url,
@@ -193,11 +208,11 @@ def make_programme_feed(prog, all_episodes, output_dir, url_base):
         extensions=[itunes],
     )
 
-    with open(output_path / output_rss, "w") as fp:
+    with open(output_path / output_rss, "wt") as fp:
         print(feed.rss(), file=fp)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=pathlib.Path, default=DEFAULT_CONFIG)
     args = parser.parse_args()
@@ -205,10 +220,10 @@ def main():
     with args.config.open("r") as c:
         config = yaml.safe_load(c)
 
-    output_dir = config["output_dir"]
-    url_base = config["url_base"]
-    programmes = config["programmes"]
-    history_file = config.get(
+    output_dir: str = config["output_dir"]
+    url_base: str = config["url_base"]
+    programmes: List[Dict[str, Any]] = config["programmes"]
+    history_file: str = config.get(
         "history_file", f"{os.environ['HOME']}/.get_iplayer/download_history"
     )
 
