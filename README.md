@@ -10,13 +10,9 @@ This requires the following modules:
 * mutagen
 * pytz
 * pyaml
-* rfeed
+* rfeed (but not the one in PyPi)
 
-All but rfeed can be installed from PyPi. The copy there is out of date but has a higher version number. Install the correct version using:
-
-```
-env/bin/pip install https://github.com/svpino/rfeed/archive/refs/heads/master.zip
-```
+To build, use `python3 -m build` (using _python-build_), then install the resulting tar.gz file that is generated (by default in `dist`) using `pip` or `pipx`.
 
 Limitations:
 
