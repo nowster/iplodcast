@@ -45,7 +45,11 @@ def get_episodes(
         episodes[name] = []
         max_age = datetime.timedelta(days=int(p.get("maxage", "365")))
         if match:
-            searches.append((name, re.compile(match), max_age))
+            if type(match) is list:
+                for m in match:
+                    searches.append((name, re.compile(m), max_age))
+            else:
+                searches.append((name, re.compile(match), max_age))
         else:
             searches.append((name, name, max_age))
 
