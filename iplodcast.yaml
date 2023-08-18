@@ -26,3 +26,11 @@ programmes:
   - match: "Just a Minute: Series \\d+"
     name: "Just a Minute"
     maxage: 90
+  - name: "Summer Friday Night Comedy"
+    match:
+      - "The Newsmakers with Rachel Parris"
+      - "What Are You Talking About\\?"
+      - "Dom Joly Breaks the News"
+      - "The United Nations of News"
+      - "Catherine Bohart: TL;DR"
+    maxage: 90
