@@ -79,11 +79,11 @@ def get_episodes(
             delimiter="|",
         )
         for ep in history:
-            date = datetime.datetime.utcfromtimestamp(
-                int(ep.get("timeadded") or "0")
+            date = datetime.datetime.fromtimestamp(
+                int(ep.get("timeadded") or "0"), datetime.UTC
             )
             for name, search, max_age in searches:
-                if datetime.datetime.now() - date < max_age:
+                if datetime.datetime.now(datetime.UTC) - date < max_age:
                     epname = ep.get("name")
                     if type(search) is str:
                         if epname == name:
@@ -184,8 +184,8 @@ def make_programme_feed(
             title=title,
             description=summary,
             guid=rfeed.Guid(guid, isPermaLink=False),
-            pubDate=datetime.datetime.utcfromtimestamp(
-                int(ep.get("timeadded", "0"))
+            pubDate=datetime.datetime.fromtimestamp(
+                int(ep.get("timeadded", "0")), datetime.UTC
             ),
             enclosure=rfeed.Enclosure(
                 url=url,
