@@ -100,6 +100,8 @@ def make_programme_feed(
     all_episodes: Dict[str, List[Dict[str, str]]],
     output_dir: str,
     url_base: str,
+    verbose: bool,
+    clean_up: bool,
 ) -> None:
     podcast_name: str = prog.get("name", "")
     podcast_description: str = prog.get("description", "")
@@ -108,94 +110,100 @@ def make_programme_feed(
     image = None
 
     episodes = all_episodes[podcast_name]
+    num_episodes = len(episodes)
 
-    if len(episodes) == 0:
-        print(f"No episodes of {podcast_name}")
-        return
+    if verbose:
+        if num_episodes:
+            print(f"{num_episodes:3} episodes of {podcast_name}")
+        else:
+            print(f" No episodes of {podcast_name}")
 
     output_path = pathlib.Path(output_dir)
     clean_path = clean_name(podcast_name)
     copy_path = output_path / clean_path
     output_rss = f"{clean_path}.rss"
 
-    copy_path.mkdir(exist_ok=True)
+    hardlinks: list[pathlib.Path] = []
+    items: list[rfeed.Item] = []
 
-    items: List[rfeed.Item] = []
-    for ep in episodes:
-        filestr = ep.get("filename")
-        if filestr is None:
-            continue
-        filename = pathlib.Path(filestr)
-        if not filename.is_file():
-            continue
+    if num_episodes:
+        for ep in episodes:
+            filestr = ep.get("filename")
+            if filestr is None:
+                continue
+            filename = pathlib.Path(filestr)
+            if not filename.is_file():
+                continue
 
-        summary = ""
-        if filename.suffix == ".m4a":
-            info = mutagen.File(filename)
-            if info is not None:
-                summary = "".join(info.get("\xa9lyr"))
+            summary = ""
+            if filename.suffix == ".m4a":
+                info = mutagen.File(filename)
+                if info is not None:
+                    summary = "".join(info.get("\xa9lyr"))
 
-        title = ep.get("episode")
-        if title is None or title == "-":
-            title = ep.get("name")
-        subtitle = ep.get("desc")
-        author = ep.get("channel")
-        image = ep.get("thumbnail")
-        duration = ep.get("duration")
-        guid = ep.get("web")
-        episode = ep.get("episodenum", "")
-        season = ep.get("seriesnum", "")
-        order = f"{padnum(season)}:{padnum(episode)}"
+            title = ep.get("episode")
+            if title is None or title == "-":
+                title = ep.get("name")
+            subtitle = ep.get("desc")
+            author = ep.get("channel")
+            image = ep.get("thumbnail")
+            duration = ep.get("duration")
+            guid = ep.get("web")
+            episode = ep.get("episodenum", "")
+            season = ep.get("seriesnum", "")
+            order = f"{padnum(season)}:{padnum(episode)}"
 
-        suffix = filename.suffix
-        mimetype = None
-        if suffix == ".mp3":
-            mimetype = "audio/mpeg"
-        elif suffix == ".m4a":
-            mimetype = "audio/mp4"
-        elif suffix == ".aac":
-            mimetype = "audio/aac"
-        elif suffix == ".ogg":
-            mimetype = "audio/ogg"
-        elif suffix == ".opus":
-            mimetype = "audio/opus"
-        elif suffix == ".flac":
-            mimetype = "audio/flac"
+            suffix = filename.suffix
+            mimetype = None
+            if suffix == ".mp3":
+                mimetype = "audio/mpeg"
+            elif suffix == ".m4a":
+                mimetype = "audio/mp4"
+            elif suffix == ".aac":
+                mimetype = "audio/aac"
+            elif suffix == ".ogg":
+                mimetype = "audio/ogg"
+            elif suffix == ".opus":
+                mimetype = "audio/opus"
+            elif suffix == ".flac":
+                mimetype = "audio/flac"
 
-        newfile = f"{clean_path}/{filename.name}"
-        url = f"{url_base}/{newfile}"
-        hardlink = copy_path / filename.name
-        hardlink.unlink(missing_ok=True)
-        hardlink.hardlink_to(filename)
+            copy_path.mkdir(exist_ok=True)
+            newfile = f"{clean_path}/{filename.name}"
+            url = f"{url_base}/{newfile}"
+            hardlink = copy_path / filename.name
+            hardlink.unlink(missing_ok=True)
+            hardlink.hardlink_to(filename)
+            hardlinks.append(hardlink)
 
-        itunes_item = rfeed.iTunesItem(
-            duration=duration,
-            image=image,
-            subtitle=subtitle,
-            summary=summary,
-            title=title,
-            episode=episode,
-            season=season,
-            author=author,
-            order=order,
-        )
+            itunes_item = rfeed.iTunesItem(
+                duration=duration,
+                image=image,
+                subtitle=subtitle,
+                summary=summary,
+                title=title,
+                episode=episode,
+                season=season,
+                author=author,
+                order=order,
+            )
 
-        item = rfeed.Item(
-            title=title,
-            description=summary,
-            guid=rfeed.Guid(guid, isPermaLink=False),
-            pubDate=datetime.datetime.fromtimestamp(
-                int(ep.get("timeadded", "0")), datetime.UTC
-            ),
-            enclosure=rfeed.Enclosure(
-                url=url,
-                length=filename.stat().st_size,
-                type=mimetype,
-            ),
-            extensions=[itunes_item],
-        )
+            item = rfeed.Item(
+                title=title,
+                description=summary,
+                guid=rfeed.Guid(guid, isPermaLink=False),
+                pubDate=datetime.datetime.fromtimestamp(
+                    int(ep.get("timeadded", "0")), datetime.UTC
+                ),
+                enclosure=rfeed.Enclosure(
+                    url=url,
+                    length=filename.stat().st_size,
+                    type=mimetype,
+                ),
+                extensions=[itunes_item],
+            )
 
-        items.append(item)
+            items.append(item)
 
     itunes = rfeed.iTunes(
         author=author,
@@ -215,10 +223,23 @@ def make_programme_feed(
     with open(output_path / output_rss, "wt") as fp:
         print(feed.rss(), file=fp)
 
+    if clean_up:
+        for path in sorted(copy_path.glob("*")):
+            if path not in hardlinks:
+                shortpath = path.relative_to(output_path)
+                if verbose:
+                    print(f"Deleting {shortpath}")
+                path.unlink(missing_ok=True)
+        if not hardlinks:
+            if copy_path.is_dir():
+                copy_path.rmdir()
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=pathlib.Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--clean-up", dest="clean_up", action="store_true")
     args = parser.parse_args()
 
     with args.config.open("r") as c:
@@ -234,7 +255,14 @@ def main() -> None:
     all_episodes = get_episodes(programmes, history_file)
 
     for programme in programmes:
-        make_programme_feed(programme, all_episodes, output_dir, url_base)
+        make_programme_feed(
+            programme,
+            all_episodes,
+            output_dir,
+            url_base,
+            args.verbose,
+            args.clean_up,
+        )
 
 
 if __name__ == "__main__":
