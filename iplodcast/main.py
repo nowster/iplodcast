@@ -12,7 +12,7 @@ import datetime
 import os
 import pathlib
 import re
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 
 import mutagen
 import rfeed
@@ -33,10 +33,10 @@ def padnum(num: str) -> str:
 
 
 def get_episodes(
-    programmes: List[Dict[str, Any]], history_file: str
-) -> Dict[str, List[Dict[Any, str]]]:
-    searches: List[Tuple[str, Union[str, re.Pattern], datetime.timedelta]] = []
-    episodes: Dict[str, List[Dict[Any, str]]] = {}
+    programmes: list[dict[str, Any]], history_file: str
+) -> dict[str, list[dict[Any, str]]]:
+    searches: list[tuple[str, Union[str, re.Pattern], datetime.timedelta]] = []
+    episodes: dict[str, list[dict[Any, str]]] = {}
     for p in programmes:
         name = p.get("name")
         match = p.get("match")
@@ -96,8 +96,8 @@ def get_episodes(
 
 
 def make_programme_feed(
-    prog: Dict[str, Any],
-    all_episodes: Dict[str, List[Dict[str, str]]],
+    prog: dict[str, Any],
+    all_episodes: dict[str, list[dict[str, str]]],
     output_dir: str,
     url_base: str,
     verbose: bool,
@@ -247,7 +247,7 @@ def main() -> None:
 
     output_dir: str = config["output_dir"]
     url_base: str = config["url_base"]
-    programmes: List[Dict[str, Any]] = config["programmes"]
+    programmes: list[dict[str, Any]] = config["programmes"]
     history_file: str = config.get(
         "history_file", f"{os.environ['HOME']}/.get_iplayer/download_history"
     )
